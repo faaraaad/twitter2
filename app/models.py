@@ -10,12 +10,14 @@ class CustomUser(AbstractUser):
     followings = models.ManyToManyField(
         "CustomUser", related_name="followers", through="Followership", symmetrical=False)
 
-    def follow(self, user):
-        relationship, created = Followership.objects.get_or_create(
+    def follow(self, pk):
+        user = CustomUser.objects.get(pk=pk)
+        Followership.objects.get_or_create(
             from_user=self, to_user=user)
         r.delete(f"user-{self.id}")
 
-    def unfollow(self, user):
+    def unfollow(self, pk):
+        user = CustomUser.objects.get(pk=pk)
         Followership.objects.filter(from_user=self, to_user=user).delete()
         r.delete(f"user-{self.id}")
 

@@ -19,7 +19,6 @@ import redis
 r = redis.Redis(host='localhost', port=63, decode_responses=True)
 
 
-
 class PostPagination(pagination.CursorPagination):
     page_size = 5
     ordering = "-create_at"
@@ -37,8 +36,6 @@ class PostView(ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
-        for user in self.request.user.followers:
-            r.lpush(f"user-{user.id}", )
 
 
 class UsersView(ModelViewSet):
@@ -55,6 +52,11 @@ class UsersView(ModelViewSet):
     @action(detail=False)
     def followings(self, request):
         szd_data = UserSerializer(instance=request.user.get_following_of_user(), many=True)
+        return Response(szd_data.data)
+
+    @action(detail=False)
+    def followers(self, request):
+        szd_data = UserSerializer(instance=request.user.get_follower_of_user(), many=True)
         return Response(szd_data.data)
 
     @action(detail=True, methods=["POST"])
