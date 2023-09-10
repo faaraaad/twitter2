@@ -22,9 +22,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-zw-!$j_&rohlxcc9-7@4cbvx1bbl%!g2m3$bs35&05cz@vk13l"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "alikhani.yesthisis.gq"]
 
 # Application definition
 
@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     'rest_framework',
     'app',
-    # 'django_extensions',
+    'django_extensions',
     'rest_framework_simplejwt',
 
 ]
@@ -79,7 +79,7 @@ WSGI_APPLICATION = "twitter.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'twitter',
+        'NAME': 'twitter2',
         # 'USER': 'twitter',
         # 'PASSWORD': 'password',
         'USER': 'farhad',

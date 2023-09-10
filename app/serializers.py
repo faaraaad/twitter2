@@ -7,7 +7,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ['body']#, 'author']
+        fields = ['url', 'body']#, 'author']
 
 
 class UserSerializer(serializers.ModelSerializer):

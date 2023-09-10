@@ -1,3 +1,4 @@
+import rest_framework.pagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
@@ -9,33 +10,35 @@ from rest_framework.viewsets import ModelViewSet, ViewSet
 from rest_framework.decorators import action
 from rest_framework.generics import ListCreateAPIView, CreateAPIView
 from rest_framework.pagination import PageNumberPagination
+from rest_framework import status
+from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework import pagination
+import redis
 
 
-class PostPagination(PageNumberPagination):
+r = redis.Redis(host='localhost', port=63, decode_responses=True)
+
+
+
+class PostPagination(pagination.CursorPagination):
     page_size = 5
+    ordering = "-create_at"
 
 
 class PostView(ModelViewSet):
-    # queryset = Post.objects.all()
     serializer_class = PostSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     pagination_class = PostPagination
 
     def get_queryset(self):
-        posts = Post.objects.filter(
-            author__in=self.request.user.followings.all()).order_by("create_at")
+        posts = self.request.user.get_feed_of_user()
         return posts
 
-    # def filter_queryset(self, queryset):
-    #     posts =  Post.objects.filter(author__in=self.request.user.followings.all())
-    #     return posts
-        # user = CustomUser.objects.get(pk=self.request.user.id)
-        # return user.get_feed_of_user()
-
     def perform_create(self, serializer):
-        user = CustomUser.objects.get(pk=self.request.user.id)
-        serializer.save(author=user)
+        serializer.save(author=self.request.user)
+        for user in self.request.user.followers:
+            r.lpush(f"user-{user.id}", )
 
 
 class UsersView(ModelViewSet):
@@ -43,24 +46,23 @@ class UsersView(ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
 
-    @action(detail=True, methods=["GET"])
+    @action(detail=True, methods=["POST"])
     def follow(self, request, pk=None):
-        self.request.user.follow(pk)
-        return Response(f"you followed {pk}")
+        user = self.request.user.select_related("body")
+        user.follow(pk)
+        return Response(status=status.HTTP_203_NON_AUTHORITATIVE_INFORMATION)
 
     @action(detail=False)
     def followings(self, request):
-        user = self.get_object()
-        followings = user.get_following_of_user()
-        szd_data = UserSerializer(instance=followings, many=True)
+        szd_data = UserSerializer(instance=request.user.get_following_of_user(), many=True)
         return Response(szd_data.data)
 
-    @action(detail=True, methods=["GET"])
+    @action(detail=True, methods=["POST"])
     def unfollow(self, request, pk=None):
         self.request.user.unfollow(pk)
-        return Response(f"you unfollowed {pk}")
+        return Response(status=status.HTTP_203_NON_AUTHORITATIVE_INFORMATION)
 
 
 class Public(APIView):
     def get(self, request):
-        return Response('this is ok')
+        return Response(status=status.HTTP_200_OK)
