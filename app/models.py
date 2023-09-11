@@ -1,9 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 import redis
+from .celery import add_to_redis
+import pickle
 
 
-r = redis.Redis(host='localhost', port=63, decode_responses=True, db=10)
+r = redis.Redis(host='localhost', port=63, db=4)
 
 
 class CustomUser(AbstractUser):
@@ -29,14 +31,13 @@ class CustomUser(AbstractUser):
 
     def get_feed_of_user(self):
         if feed := r.lrange(f"user-{self.id}", 0, -1):
-            id_of_posts = [int(i) for i in feed]
-            posts = Post.objects.filter(id__in=id_of_posts)
-            return posts
+            return [pickle.loads(post) for post in feed]
         else:
             posts = Post.objects.filter(
                 author__in=self.followings.all()).order_by('-create_at')
             if posts:
-                r.lpush(f"user-{self.id}", *[post.id for post in posts])
+                posts_pickle = [pickle.dumps(post) for post in posts]
+                r.lpush(f"user-{self.id}", *posts_pickle)
         return posts
 
 
@@ -53,9 +54,12 @@ class Post(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        followers = CustomUser.objects.get(id=self.author.id).followers.all()
-        for user in followers:
-            r.lpush(f"user-{user.id}", self.id)
+
+        # followers = CustomUser.objects.get(id=self.author.id).followers.all()
+        post_pickle = pickle.dumps(self)
+        add_to_redis.delay(self.author.id, post_pickle)
+        # for user in followers:
+        #     r.lpush(f"user-{user.id}", self.id)
 
     def __str__(self):
         return self.body

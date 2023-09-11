@@ -7,3 +7,4 @@ class AppConfig(AppConfig):
 
     def ready(self) -> None:
         from . import signals
+        from .models import Post

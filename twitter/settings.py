@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'app',
     'django_extensions',
     'rest_framework_simplejwt',
-
+    "django_celery_results",
 ]
 
 MIDDLEWARE = [
@@ -149,3 +149,11 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
+
+
+CELERY_BROKER_URL = 'redis://127.0.0.1:63'
+CELERY_ACCEPT_CONTENT = ['pickle']
+CELERY_RESULT_SERIALIZER = 'pickle'
+CELERY_TASK_SERIALIZER = 'pickle'
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_TIMEZONE = 'Asia/Tehran'

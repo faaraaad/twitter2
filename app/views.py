@@ -13,22 +13,18 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework import pagination
-import redis
 
 
-r = redis.Redis(host='localhost', port=63, decode_responses=True)
-
-
-class PostPagination(pagination.CursorPagination):
-    page_size = 5
-    ordering = "-create_at"
+# class PostPagination(pagination.CursorPagination):
+#     page_size = 5
+#     ordering = "-create_at"
 
 
 class PostView(ModelViewSet):
     serializer_class = PostSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-    pagination_class = PostPagination
+    # pagination_class = PostPagination
 
     def get_queryset(self):
         posts = self.request.user.get_feed_of_user()
@@ -68,3 +64,12 @@ class UsersView(ModelViewSet):
 class Public(APIView):
     def get(self, request):
         return Response(status=status.HTTP_200_OK)
+
+
+class Who_Am_I(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({"id": request.user.id,
+                         "username": request.user.username})
