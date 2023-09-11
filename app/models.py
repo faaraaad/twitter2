@@ -36,7 +36,7 @@ class CustomUser(AbstractUser):
             posts = Post.objects.filter(
                 author__in=self.followings.all()).order_by('-create_at')
             if posts:
-                push_posts(posts, self.id)
+                push_posts.delay(posts, self.id)
         return posts
 
 
