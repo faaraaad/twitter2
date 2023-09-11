@@ -54,11 +54,8 @@ class Post(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
 
-        # followers = CustomUser.objects.get(id=self.author.id).followers.all()
         post_pickle = pickle.dumps(self)
         add_to_redis.delay(self.author.id, post_pickle)
-        # for user in followers:
-        #     r.lpush(f"user-{user.id}", self.id)
 
     def __str__(self):
         return self.body
