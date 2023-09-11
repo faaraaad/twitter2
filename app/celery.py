@@ -5,6 +5,7 @@ from celery import Celery
 from django.conf import settings
 from redis import Redis
 from django.contrib.auth import get_user_model
+import pickle
 
 
 r = Redis(host="localhost", port=63, db=4)
@@ -23,3 +24,9 @@ def add_to_redis(self, author_id, post):
     followers = customuser.objects.get(id=author_id).followers.all()
     for user in followers:
         r.lpush(f"user-{user.id}", post)
+
+
+@app.task(bind=True)
+def push_posts(self, posts, user_id):
+    posts_pickle = [pickle.dumps(post) for post in posts]
+    r.lpush(f"user-{user_id}", *posts_pickle)

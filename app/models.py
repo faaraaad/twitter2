@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 import redis
-from .celery import add_to_redis
+from .celery import add_to_redis, push_posts
 import pickle
 
 
@@ -36,8 +36,7 @@ class CustomUser(AbstractUser):
             posts = Post.objects.filter(
                 author__in=self.followings.all()).order_by('-create_at')
             if posts:
-                posts_pickle = [pickle.dumps(post) for post in posts]
-                r.lpush(f"user-{self.id}", *posts_pickle)
+                push_posts(posts, self.id)
         return posts
 
 
