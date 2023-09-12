@@ -36,7 +36,9 @@ class CustomUser(AbstractUser):
             posts = Post.objects.filter(
                 author__in=self.followings.all()).order_by('-create_at')[:10]
             if posts:
-                push_posts.delay(posts, self.id)
+                posts_pickle = [pickle.dumps(post) for post in posts]
+                r.lpush(f"user-{self.id}", *posts_pickle)
+                # r.ltrim(f"user-{self.id}", 10, -1)
         return posts
 
 
