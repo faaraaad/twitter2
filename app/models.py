@@ -5,7 +5,8 @@ from django.contrib.auth.models import AbstractUser
 
 
 class CustomUser(AbstractUser):
-    followings = models.ManyToManyField("CustomUser")
+    followings = models.ManyToManyField(
+        "CustomUser", related_name="followers", through="Followership", symmetrical=False)
 
     def follow(self, user):
         # u = CustomUser.objects.get(id=pk)
@@ -18,10 +19,15 @@ class CustomUser(AbstractUser):
         return self.followings.all()
 
     def get_feed_of_user(self):
-        # followings = self.get_following_of_user()
         posts = Post.objects.filter(author__in=self.followings.all()).prefetch_related("author").order_by(
             '-create_at')
         return posts
+
+
+class Followership(models.Model):
+    from_user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="to_person")
+    to_user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="from_person")
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
 
 class Post(models.Model):
