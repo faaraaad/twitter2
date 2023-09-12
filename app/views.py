@@ -13,22 +13,26 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework import pagination
+from django.db.models import QuerySet
 
 
-# class PostPagination(pagination.CursorPagination):
-#     page_size = 5
-#     ordering = "-create_at"
+class PostPagination(pagination.PageNumberPagination):
+    page_size = 10
+    ordering = "-create_at"
 
 
 class PostView(ModelViewSet):
     serializer_class = PostSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-    # pagination_class = PostPagination
+    pagination_class = PostPagination
 
     def get_queryset(self):
-        posts = self.request.user.get_feed_of_user()
-        return posts
+        user = self.request.user
+        queryset1 = user.get_recent_feed_of_user(cache_size=50)
+        queryset2 = user.get_feed_of_user(cache_size=50)
+        post_combined_queryset = queryset1.union(queryset2)
+        return post_combined_queryset
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)

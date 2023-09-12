@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 import pickle
 
 
-r = Redis(host="localhost", port=63, db=4)
+r = Redis(host="localhost", port=63, db=4, decode_responses=True)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'twitter.settings')
 
 app = Celery('app')
@@ -18,17 +18,15 @@ app.autodiscover_tasks()
 
 
 @app.task(bind=True)
-def add_to_redis(self, author_id, post):
+def add_to_redis(self, author_id, post_id):
     print("received to celery")
     customuser = get_user_model()
-    followers = customuser.objects.get(id=author_id).followers.all()
+    followers = customuser.objects.get(id=author_id).followers.all().only("id")
     for user in followers:
-        r.lpush(f"user-{user.id}", post)
-        r.ltrim(f"user-{user.id}", 10, -1)
+        r.lpush(f"user-{user.id}", post_id)
 
 
 @app.task(bind=True)
 def push_posts(self, posts, user_id):
     posts_pickle = [pickle.dumps(post) for post in posts]
     r.lpush(f"user-{user_id}", *posts_pickle)
-    r.ltrim(f"user-{user_id}", 10, -1)

@@ -5,7 +5,7 @@ from .celery import add_to_redis, push_posts
 import pickle
 
 
-r = redis.Redis(host='localhost', port=63, db=4)
+r = redis.Redis(host='localhost', port=63, db=4, decode_responses=True)
 
 
 class CustomUser(AbstractUser):
@@ -29,16 +29,21 @@ class CustomUser(AbstractUser):
     def get_following_of_user(self):
         return self.followings.all()
 
-    def get_feed_of_user(self):
-        if feed := r.lrange(f"user-{self.id}", 0, -1):
-            return [pickle.loads(post) for post in feed]
+    def get_recent_feed_of_user(self, cache_size):
+        if feed := r.lrange(f"user-{self.id}", 0, cache_size):
+            return Post.objects.filter(id__in=feed)
         else:
             posts = Post.objects.filter(
-                author__in=self.followings.all()).order_by('-create_at')[:10]
+                author__in=self.followings.all().only("id")).order_by('-create_at')[:cache_size]
             if posts:
-                posts_pickle = [pickle.dumps(post) for post in posts]
-                r.lpush(f"user-{self.id}", *posts_pickle)
-                # r.ltrim(f"user-{self.id}", 10, -1)
+                posts_id = [post.id for post in posts]
+                print(posts_id)
+                r.lpush(f"user-{self.id}", *posts_id)
+        return posts
+
+    def get_feed_of_user(self, cache_size):
+        posts = Post.objects.filter(
+            author__in=self.followings.all().only("id")).order_by('-create_at')[:cache_size]
         return posts
 
 
@@ -56,8 +61,7 @@ class Post(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
 
-        post_pickle = pickle.dumps(self)
-        add_to_redis.delay(self.author.id, post_pickle)
+        add_to_redis(self.author.id, self.id)
 
     def __str__(self):
         return self.body
