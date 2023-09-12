@@ -31,3 +31,4 @@ def add_to_redis(self, author_id, post):
 def push_posts(self, posts, user_id):
     posts_pickle = [pickle.dumps(post) for post in posts]
     r.lpush(f"user-{user_id}", *posts_pickle)
+    r.ltrim(f"user-{user_id}", 10, -1)
