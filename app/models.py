@@ -34,7 +34,7 @@ class CustomUser(AbstractUser):
             return [pickle.loads(post) for post in feed]
         else:
             posts = Post.objects.filter(
-                author__in=self.followings.all()).order_by('-create_at')
+                author__in=self.followings.all()).order_by('-create_at')[:10]
             if posts:
                 push_posts.delay(posts, self.id)
         return posts

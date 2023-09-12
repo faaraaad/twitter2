@@ -24,6 +24,7 @@ def add_to_redis(self, author_id, post):
     followers = customuser.objects.get(id=author_id).followers.all()
     for user in followers:
         r.lpush(f"user-{user.id}", post)
+        r.ltrim(f"user-{user.id}", 10, -1)
 
 
 @app.task(bind=True)

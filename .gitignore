@@ -3,3 +3,4 @@ not.git
 *.csv
 *.log
 *.dump
+*locust_file_users.py
