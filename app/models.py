@@ -36,7 +36,9 @@ class CustomUser(AbstractUser):
             posts = Post.objects.filter(
                 author__in=self.followings.all()).order_by('-create_at')[:10]
             if posts:
-                push_posts.delay(posts, self.id)
+                posts_pickle = [pickle.dumps(post) for post in posts]
+                r.lpush(f"user-{self.id}", *posts_pickle)
+                # r.ltrim(f"user-{self.id}", 10, -1)
         return posts
 
 
@@ -55,7 +57,10 @@ class Post(models.Model):
         super().save(*args, **kwargs)
 
         post_pickle = pickle.dumps(self)
-        add_to_redis.delay(self.author.id, post_pickle)
+        followers = CustomUser.objects.get(id=self.id).followers.all()
+        for user in followers:
+            r.lpush(f"user-{user.id}", post_pickle)
+            # r.ltrim(f"user-{user.id}", 10, -1)
 
     def __str__(self):
         return self.body

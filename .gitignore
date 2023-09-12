@@ -4,3 +4,4 @@ not.git
 *.log
 *.dump
 *locust_file_users.py
+*.sql
