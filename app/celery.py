@@ -19,7 +19,6 @@ app.autodiscover_tasks()
 
 @app.task(bind=True)
 def add_to_redis(self, author_id, post_id):
-    print("received to celery")
     customuser = get_user_model()
     followers = customuser.objects.get(id=author_id).followers.all().only("id")
     for user in followers:
