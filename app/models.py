@@ -30,15 +30,8 @@ class CustomUser(AbstractUser):
         return self.followings.all()
 
     def get_feed_of_user(self):
-        if feed := r.lrange(f"user-{self.id}", 0, -1):
-            return [pickle.loads(post) for post in feed]
-        else:
-            posts = Post.objects.filter(
-                author__in=self.followings.all()).order_by('-create_at')[:10]
-            if posts:
-                posts_pickle = [pickle.dumps(post) for post in posts]
-                r.lpush(f"user-{self.id}", *posts_pickle)
-                # r.ltrim(f"user-{self.id}", 10, -1)
+        posts = Post.objects.filter(
+            author__in=self.followings.all()).order_by('-create_at')[:10]
         return posts
 
 
@@ -52,15 +45,6 @@ class Post(models.Model):
     author = models.ForeignKey(CustomUser, models.CASCADE)
     body = models.CharField(max_length=144)
     create_at = models.DateTimeField(auto_now_add=True)
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-
-        post_pickle = pickle.dumps(self)
-        followers = CustomUser.objects.get(id=self.id).followers.all()
-        for user in followers:
-            r.lpush(f"user-{user.id}", post_pickle)
-            # r.ltrim(f"user-{user.id}", 10, -1)
 
     def __str__(self):
         return self.body

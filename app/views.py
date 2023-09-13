@@ -13,11 +13,15 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework import pagination
+from redis import Redis
+import pickle
 
 
 # class PostPagination(pagination.CursorPagination):
 #     page_size = 5
 #     ordering = "-create_at"
+
+redis_connection = Redis(host='localhost', port=63, db=4)
 
 
 class PostView(ModelViewSet):
@@ -25,6 +29,24 @@ class PostView(ModelViewSet):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     # pagination_class = PostPagination
+
+    def list(self, request, *args, **kwargs):
+        if szd_data := redis_connection.lrange(f"user-{request.user.id}", 0, -1):
+            data = pickle.loads(szd_data[0])
+            print(data, request.user.id)
+            return Response(data)
+
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        if serializer.data:
+            pickle_szd_data = pickle.dumps(serializer.data)
+            redis_connection.lpush(f"user-{request.user.id}", pickle_szd_data)
+        return Response(serializer.data)
 
     def get_queryset(self):
         posts = self.request.user.get_feed_of_user()
@@ -41,7 +63,7 @@ class UsersView(ModelViewSet):
 
     @action(detail=True, methods=["POST"])
     def follow(self, request, pk=None):
-        user = self.request.user.select_related("body")
+        user = self.request.user
         user.follow(pk)
         return Response(status=status.HTTP_203_NON_AUTHORITATIVE_INFORMATION)
 
