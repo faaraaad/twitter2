@@ -4,7 +4,7 @@ from psqlextra.backend.migrations.operations import PostgresAddRangePartition
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('app', '0004_postmodel'),
+        ('app', '0006_auto_20230915_2245'),
     ]
 
     operations = [

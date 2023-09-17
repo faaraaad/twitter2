@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'django_extensions',
     'rest_framework_simplejwt',
     "django_celery_results",
-]
+    "django.contrib.postgres",
+    "psqlextra",]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -78,14 +79,15 @@ WSGI_APPLICATION = "twitter.wsgi.application"
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'twitter2',
+        # 'ENGINE': 'django.db.backends.postgresql',
+        "ENGINE": "psqlextra.backend",
+        'NAME': 'twitter_testi',
         # 'USER': 'twitter',
         # 'PASSWORD': 'password',
         'USER': 'farhad',
         'PASSWORD': 'farhad',
         'HOST': 'localhost',
-        'PORT': '6432',
+        'PORT': '54',
     }
 }
 
