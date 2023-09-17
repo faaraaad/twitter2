@@ -18,6 +18,7 @@ from django.db.models import QuerySet
 
 class PostPagination(pagination.PageNumberPagination):
     page_size = 10
+    ordering = "-create_at"
 
 
 class PostView(ModelViewSet):
@@ -28,8 +29,10 @@ class PostView(ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        posts = user.get_feed_of_user()
-        return posts
+        queryset1 = user.get_recent_feed_of_user(cache_size=50)
+        queryset2 = user.get_feed_of_user(cache_size=50)
+        post_combined_queryset = queryset1.union(queryset2)
+        return post_combined_queryset
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)

@@ -1,27 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+import redis
+from .celery import add_to_redis, push_posts
+import pickle
 
 
-class Post2018To2022(models.Model):
-    class Meta:
-        managed = False
-        db_table = 'app_postmodel_default'
-        # db_table = 'app_post_2018_to_2022'
-
-    author = models.ForeignKey("CustomUser", models.CASCADE)
-    body = models.CharField(max_length=144)
-    create_at = models.DateTimeField(auto_now_add=True)
-
-
-class Post2023To2024(models.Model):
-    class Meta:
-        managed = False
-        db_table= "app_postmodel_post_partitioned_create_from_2022_to_2023"
-        # db_table = 'app_post_2022_to_2024'
-
-    author = models.ForeignKey("CustomUser", models.CASCADE)
-    body = models.CharField(max_length=144)
-    create_at = models.DateTimeField(auto_now_add=True)
+r = redis.Redis(host='localhost', port=63, db=4, decode_responses=True)
 
 
 class CustomUser(AbstractUser):
@@ -32,25 +16,35 @@ class CustomUser(AbstractUser):
         user = CustomUser.objects.get(pk=pk)
         Followership.objects.get_or_create(
             from_user=self, to_user=user)
+        r.delete(f"user-{self.id}")
 
     def unfollow(self, pk):
         user = CustomUser.objects.get(pk=pk)
         Followership.objects.filter(from_user=self, to_user=user).delete()
+        r.delete(f"user-{self.id}")
+
     def get_follower_of_user(self):
         return self.followers.all()
 
     def get_following_of_user(self):
         return self.followings.all()
 
-    def get_feed_of_user(self):
-        recent_posts = Post2018To2022.objects.filter(
-            author__in=self.followings.all().only("id")).order_by('-create_at')
+    def get_recent_feed_of_user(self, cache_size):
+        if feed := r.lrange(f"user-{self.id}", 0, cache_size):
+            return Post.objects.filter(id__in=feed)
+        else:
+            posts = Post.objects.filter(
+                author__in=self.followings.all().only("id")).order_by('-create_at')[:cache_size]
+            if posts:
+                posts_id = [post.id for post in posts]
+                print(posts_id)
+                r.lpush(f"user-{self.id}", *posts_id)
+        return posts
 
-        old_posts = Post2023To2024.objects.filter(
-            author__in=self.followings.all().only("id")).order_by('-create_at')
-
-        combined_posts = recent_posts.union(old_posts).order_by("filter")
-        return combined_posts
+    def get_feed_of_user(self, cache_size):
+        posts = Post.objects.filter(
+            author__in=self.followings.all().only("id")).order_by('-create_at')[:cache_size]
+        return posts
 
 
 class Followership(models.Model):
@@ -64,39 +58,10 @@ class Post(models.Model):
     body = models.CharField(max_length=144)
     create_at = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        add_to_redis(self.author.id, self.id)
+
     def __str__(self):
         return self.body
-
-
-from django.db import models
-from psqlextra.types import PostgresPartitioningMethod
-from psqlextra.models import PostgresPartitionedModel
-
-
-class PostModel(PostgresPartitionedModel):
-    class PartitioningMeta:
-        method = PostgresPartitioningMethod.RANGE
-        key = ["create_at"]
-
-    author = models.ForeignKey(CustomUser, models.CASCADE)
-    body = models.CharField(max_length=144)
-    create_at = models.DateTimeField(auto_now_add=True)
-
-
-class PostPartition(models.Model):
-    class Meta:
-        db_table= "app_postmodel_post_partitioned_create_from_2022_to_2023"
-
-    author = models.ForeignKey(CustomUser, models.CASCADE)
-    body = models.CharField(max_length=144)
-    create_at = models.DateTimeField(auto_now_add=True)
-
-
-class Post2Partition(models.Model):
-    class Meta:
-        db_table = 'app_postmodel_default'
-        managed = False
-
-    author = models.ForeignKey(CustomUser, models.CASCADE)
-    body = models.CharField(max_length=144)
-    create_at = models.DateTimeField(auto_now_add=True)
