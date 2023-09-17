@@ -5,8 +5,8 @@ from django.contrib.auth.models import AbstractUser
 class Post2018To2022(models.Model):
     class Meta:
         managed = False
-        db_table = 'app_postmodel_default'
-        # db_table = 'app_post_2018_to_2022'
+        # db_table = 'app_postmodel_default'
+        db_table = 'app_post_2018_to_2022'
 
     author = models.ForeignKey("CustomUser", models.CASCADE)
     body = models.CharField(max_length=144)
@@ -16,8 +16,8 @@ class Post2018To2022(models.Model):
 class Post2023To2024(models.Model):
     class Meta:
         managed = False
-        db_table= "app_postmodel_post_partitioned_create_from_2022_to_2023"
-        # db_table = 'app_post_2022_to_2024'
+        # db_table= "app_postmodel_post_partitioned_create_from_2022_to_2023"
+        db_table = 'app_post_2022_to_2024'
 
     author = models.ForeignKey("CustomUser", models.CASCADE)
     body = models.CharField(max_length=144)
