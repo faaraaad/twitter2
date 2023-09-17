@@ -36,6 +36,7 @@ class CustomUser(AbstractUser):
     def unfollow(self, pk):
         user = CustomUser.objects.get(pk=pk)
         Followership.objects.filter(from_user=self, to_user=user).delete()
+
     def get_follower_of_user(self):
         return self.followers.all()
 
@@ -77,25 +78,6 @@ class PostModel(PostgresPartitionedModel):
     class PartitioningMeta:
         method = PostgresPartitioningMethod.RANGE
         key = ["create_at"]
-
-    author = models.ForeignKey(CustomUser, models.CASCADE)
-    body = models.CharField(max_length=144)
-    create_at = models.DateTimeField(auto_now_add=True)
-
-
-class PostPartition(models.Model):
-    class Meta:
-        db_table= "app_postmodel_post_partitioned_create_from_2022_to_2023"
-
-    author = models.ForeignKey(CustomUser, models.CASCADE)
-    body = models.CharField(max_length=144)
-    create_at = models.DateTimeField(auto_now_add=True)
-
-
-class Post2Partition(models.Model):
-    class Meta:
-        db_table = 'app_postmodel_default'
-        managed = False
 
     author = models.ForeignKey(CustomUser, models.CASCADE)
     body = models.CharField(max_length=144)
